@@ -1218,6 +1218,8 @@ const GUIA = [
   ]
  ]
 ];
+const LINK_APP = 'https://github.com/alvaromotajr/anota-ai-apk/releases/latest/download/anota-ai.apk';
+const textoConvite = () => `📒 Anota Aí! – as contas da família no celular e no computador.\n\n📲 Baixar o app (Android):\n${LINK_APP}\n\n🌐 Usar pelo site:\n${location.origin}${location.pathname}\n\nCrie a sua conta (e-mail e senha ou Google) e escolha criar a sua família. Se for entrar na minha, peça o código em Config. > Minha família.`;
 let cfgSub = '';
 function telaGuia() {
   return `${voltarCfg()}<div class="titulo" style="margin-top:0">📖 Super tutorial</div><div class="mut" style="margin-bottom:8px">Toque num assunto para abrir.</div>
@@ -1254,6 +1256,7 @@ function telaConfig() {
     ${it('🏦', 'Contas bancárias', 'Saldo inicial e dono de cada conta', 'aba', 'data-aba="bancos"')}
   </div>
   <div class="card" style="padding:4px 14px"><div class="mut" style="padding:10px 0 0">⚙️ Parametrização do sistema</div>
+    ${it('📤', 'Compartilhar o app', 'Manda por WhatsApp o link do app e do site', 'zap')}
     ${it('📖', 'Super tutorial', 'Guia completo, passo a passo', 'csub', 'data-s="guia"')}
     ${it('👤', 'Beneficiários', 'Para quem são os gastos', 'csub', 'data-s="pessoas"')}
     ${it('🏷️', 'Categorias de gasto', 'Mercado, carro, casa…', 'csub', 'data-s="categorias"')}
@@ -1345,6 +1348,7 @@ $app.addEventListener('click', e => {
     const r = prompt('Meta de sobra do mês (R$). Deixe vazio para sem meta. Vale só neste navegador.', lsGet('meta', '') || '');
     if (r !== null) { const n = pnum(r); lsSet('meta', isNaN(n) ? '0' : String(n)); render(); }
   }
+  else if (a === 'zap') window.open('https://wa.me/?text=' + encodeURIComponent(textoConvite()), '_blank');
   else if (a === 'sair') signOut(auth);
 });
 $app.addEventListener('change', async e => {
