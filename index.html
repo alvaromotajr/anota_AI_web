@@ -121,6 +121,7 @@ select.mini option{color:#111;background:#fff}
  .grid-auto{grid-template-columns:1fr}
 }
 /* ===== janelas ===== */
+.tela-jogo{position:fixed;inset:0;z-index:40;background:var(--bg);display:flex;flex-direction:column}.jg-topo{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:var(--card);border-bottom:1px solid var(--lin)}.jg-corpo{flex:1;overflow:auto;display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px}
 .dlg{position:fixed;inset:0;background:#0008;z-index:30;display:flex;align-items:center;justify-content:center;padding:16px}
 .dlg .box{background:var(--card);color:var(--tx);width:100%;max-width:520px;max-height:92vh;overflow:auto;border-radius:24px;padding:20px}
 @media(max-width:820px){.dlg{align-items:flex-end;padding:0}.dlg .box{border-radius:24px 24px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom))}}
@@ -163,7 +164,7 @@ import { firebaseConfig } from './firebase-config.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut,
   signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, doc, onSnapshot, setDoc, updateDoc, deleteDoc, getDoc, arrayUnion, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, doc, onSnapshot, setDoc, updateDoc, deleteDoc, getDoc, getDocs, arrayUnion, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const $app = document.getElementById('app');
 const LEGADOS = ['alvaromotajr@gmail.com', 'vivinati1996@gmail.com'];
@@ -537,6 +538,30 @@ function mascoteSVG(tipo, h, ox = 0, oy = 0) {
       + _cif(57, 24, 0.6, '#3E9A5E', 2.2) + _rr(14, 36, 72, 50, 10, '#B86B3A') + _rr(14, 36, 72, 17, 8, '#CC8350');
     for (let i = 0; i < 9; i++) { const x = 20 + i * 7.5; o += _tr(`M${x} 80 L${x + 3.4} 80`, '#F2C79A', 1.4); }
     o += _ci(78, 66, 5.6, '#F5B82E', TINTA, 2) + _ci(78, 66, 2, '#D9962B') + _tr('M19 58 Q18 68 21 76', '#fff', 2.4, 0.3) + _bra(14, 64, aE, '#A95E30') + _bra(86, 64, aD, '#A95E30') + R(46, 64, 11, 5.6);
+  } else if (tipo === 'porco') {
+    o += _per(34, 90) + _per(66, 90)
+      + _ca('M19 42 L24 24 Q38 22 44 33 Z', '#E88DA3') + _ca('M81 42 L76 24 Q62 22 56 33 Z', '#E88DA3')
+      + `<path d="M26 37 L28.5 29 Q35 29 38 33 Z" fill="#FFC2D0"/><path d="M74 37 L71.5 29 Q65 29 62 33 Z" fill="#FFC2D0"/>`
+      + _ci(50, 20, 7, '#F6B93B', TINTA, 2.2) + _cif(50, 20, 0.62, '#D9962B', 1.9)
+      + _ov(53.5, 60, 35, 31, '#D9758F') + _ov(50, 57, 35, 31, '#F7A9BC')
+      + _ov(50, 27, 14, 5, '#5CE1E6', 0, 0.28) + _rr(40, 24.5, 20, 5.5, 2.75, '#2B2140', 0) + _rr(42, 25.7, 16, 3.1, 1.5, '#5CE1E6', 0)
+      + _tr('M27 46 Q24.5 57 29 68', '#fff', 2.6, 0.45) + _tr('M74 70 Q78 62 77 52', '#5CE1E6', 2, 0.75)
+      + _ov(50, 74, 12.5, 8.5, '#F28FA8') + _ov(45.5, 74.5, 2, 3.1, '#B84E6B', 0) + _ov(54.5, 74.5, 2, 3.1, '#B84E6B', 0)
+      + _bra(17, 60, aE, '#E88DA3') + _bra(83, 60, aD, '#E88DA3') + R(50, 44, 10, 5.4);
+  } else if (tipo === 'coruja') {
+    o += _ov(39, 91, 7, 3.6, '#F2A23B') + _ov(61, 91, 7, 3.6, '#F2A23B')
+      + _ca('M24 36 L19 11 Q32 15 41 27 Z', '#6B5BB0') + _ca('M76 36 L81 11 Q68 15 59 27 Z', '#6B5BB0')
+      + _ov(53.5, 58, 33, 34, '#5B4C9A') + _ov(50, 55, 33, 34, '#7C6BC4')
+      + _ov(50, 70, 21, 19, '#E8DDF7', 1.8);
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) o += _tr(`M${37 + i * 8 + j * 4} ${68 + j * 8} q3 3 6 0`, '#B9A8E0', 1.4);
+    o += _ci(39.5, 44, 13.5, '#F3ECFF', TINTA, 2.2) + _ci(60.5, 44, 13.5, '#F3ECFF', TINTA, 2.2)
+      + _ca('M47 50.5 L53 50.5 L50 57 Z', '#F5B82E', 2)
+      + _tr('M24 52 Q22 64 27 74', '#fff', 2.6, 0.3)
+      + _bra(17, 56, aE, '#6B5BB0') + _bra(83, 56, aD, '#6B5BB0') + R(50, 44, 10, 5.4)
+      + _ci(40, 44, 9.6, '#BFE6FF', null, 0, 0.22) + _ci(60, 44, 9.6, '#BFE6FF', null, 0, 0.22)
+      + _ci(40, 44, 9.6, null, TINTA, 2.6) + _ci(60, 44, 9.6, null, TINTA, 2.6)
+      + _tr('M49.4 43 Q50 41.8 50.6 43', TINTA, 2.4) + _tr('M30.6 42.5 L26.5 40.5 M69.4 42.5 L73.5 40.5', TINTA, 2.4)
+      + _tr('M33.5 40 Q35.5 37.5 38.5 36.8', '#fff', 1.8, 0.8) + _tr('M53.5 40 Q55.5 37.5 58.5 36.8', '#fff', 1.8, 0.8);
   } else {
     o += _per(40, 90) + _per(60, 90);
     const vs = ['#7ACB8D', '#5DB878', '#8AD39C', '#6DC48A'], an = [-38, -13, 13, 38];
@@ -553,7 +578,7 @@ function mascoteSVG(tipo, h, ox = 0, oy = 0) {
   else if (h === 'dormindo') for (let i = 0; i < 3; i++) { const p = (fase + i / 3) % 1, x0 = 72 + p * 10, y0 = 30 - p * 20, sz = 2.6 + p * 3; o += _tr(`M${N(x0)} ${N(y0)} L${N(x0 + sz)} ${N(y0)} L${N(x0)} ${N(y0 + sz)} L${N(x0 + sz)} ${N(y0 + sz)}`, '#6B5B95', 1.8, Math.sin(p * Math.PI)); }
   return `<svg class="mascote" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><ellipse cx="50" cy="94.5" rx="22" ry="3" fill="#000" opacity=".16"/><g class="corpo">${o}</g></svg>`;
 }
-const MASCOTES = [['maco', 'Maço'], ['saco', 'Saco'], ['moeda', 'Moeda'], ['carteira', 'Carteira'], ['nenhum', 'Sem mascote']];
+const MASCOTES = [['maco', 'Maço'], ['saco', 'Saco'], ['moeda', 'Moeda'], ['carteira', 'Carteira'], ['porco', 'Porquinho'], ['coruja', 'Coruja'], ['nenhum', 'Sem mascote']];
 const tipoMascote = () => { const t = lsGet('mascote', 'saco'); return MASCOTES.some(m => m[0] === t) ? t : 'saco'; };
 // os olhos seguem o mouse
 document.addEventListener('pointermove', e => {
@@ -1284,12 +1309,12 @@ const GUIA = [
   "🔔",
   "Notificações (só no app)",
   [
-   "No app, vá em Mais > Ligar acesso às notificações e libere.",
+   "No app, vá em Config. > Segurança e dados > Permissões e libere o acesso às notificações.",
    "Em Apps monitorados, marque só o banco e o cartão. Os outros não são lidos.",
    "Chegou uma notificação nova? Ela aparece em Pendentes.",
    "Toque e diga o que é: entrada, saída, compra, boleto ou fatura.",
    "O app aprende. Da próxima vez ele já sabe sozinho.",
-   "Se o app parar de ler, veja Mais > Permissões (bateria e início automático).",
+   "Se o app parar de ler, veja Config. > Segurança e dados > Permissões (bateria e início automático).",
    "O site não lê notificações. Classifique as pendentes pelo app."
   ],
   [
@@ -1439,7 +1464,7 @@ const TITULOS_VIDEO = {
  "v21": "Site: cartões e fatura",
  "v22": "Site: config. e família"
 };
-const VIDEOS = { v01: 'v01.mp4' }; // código do vídeo -> arquivo na pasta videos/ (ex.: v01: "v01.mp4")
+const VIDEOS = { v01: 'v01.mp4', v17: 'v17.mp4' }; // código do vídeo -> arquivo na pasta videos/ (ex.: v01: "v01.mp4")
 const LINK_APP = 'https://github.com/alvaromotajr/anota-ai-apk/releases/latest/download/anota-ai.apk';
 const textoConvite = () => `📒 Anota Aí! – as contas da família no celular e no computador.\n\n📲 Baixar o app (Android):\n${LINK_APP}\n\n🌐 Usar pelo site:\n${location.origin}${location.pathname}\n\nCrie a sua conta (e-mail e senha ou Google) e escolha criar a sua família. Se for entrar na minha, peça o código em Config. > Minha família.`;
 let cfgSub = '';
@@ -1471,7 +1496,7 @@ function abrirTutorial(primeira) {
   };
   const desenhar = () => {
     const fim = pag === ult, sl = slides[pag], masc = pag === nsl;
-    box.innerHTML = `<div style="text-align:right"><button class="btn txt" id="t_pular">Pular tutorial</button></div>
+    box.innerHTML = `<div style="text-align:right"><button class="btn txt" id="t_pular">${primeira && pag < nsl ? 'Pular tutorial' : 'Pular'}</button></div>
       <div style="text-align:center;padding:4px 0 8px">${masc
         ? `<div style="font-size:56px">🐾</div><h2>Escolha o seu mascote</h2><p>Ele reage aos seus gastos: feliz, preocupado, bravo ou triste. Toque no que você mais gostar.</p>
            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:8px">${MASCOTES.map(([k, n]) => `<button class="btn sec" data-mc="${k}" style="padding:8px;${tipoMascote() === k ? 'outline:3px solid var(--pri)' : ''}"><div style="width:64px;height:64px;margin:0 auto">${k === 'nenhum' ? '<div style="font-size:40px;line-height:64px">🚫</div>' : mascoteSVG(k, 'feliz')}</div><small>${n}</small></button>`).join('')}</div>
@@ -1483,7 +1508,7 @@ function abrirTutorial(primeira) {
       <div style="text-align:center;letter-spacing:6px;margin:6px 0;color:var(--tx2)">${Array.from({ length: ult + 1 }, (_, i) => i === pag ? '●' : '○').join('')}</div>
       <div class="btns">${pag > 0 ? '<button class="btn sec" id="t_volta" style="flex:1">← Voltar</button>' : ''}<button class="btn" id="t_prox" style="flex:2">${fim ? 'Começar' : 'Próximo →'}</button></div>`;
     box.querySelectorAll('[data-mc]').forEach(b => b.onclick = () => { lsSet('mascote', b.dataset.mc); desenhar(); });
-    box.querySelector('#t_pular').onclick = () => terminar(true);
+    box.querySelector('#t_pular').onclick = () => { if (primeira && pag < nsl) { guardar(); pag = nsl; desenhar(); } else terminar(true); };
     box.querySelector('#t_prox').onclick = () => { guardar(); if (fim) terminar(false); else { pag++; desenhar(); } };
     const v = box.querySelector('#t_volta'); if (v) v.onclick = () => { guardar(); pag--; desenhar(); };
     const vb = box.querySelector('[data-act=video]'); if (vb) vb.onclick = () => abrirVideo(vb.dataset.v);
@@ -1560,11 +1585,246 @@ async function carregarFam() {
 }
 
 // ---------- render ----------
-const ABAS = [['inicio', '🏠', 'Início'], ['contas', '📅', 'Contas'], ['bancos', '🏦', 'Bancos'], ['cartoes', '💳', 'Cartões'], ['config', '⚙️', 'Config.']];
+
+// ---------- jogos (mesmos jogos e ranking do app) ----------
+const RANK_JOGOS = [
+  ['paciencia', '♠️', 'Paciência', 1, 0, ' pts'], ['spider', '🕷️', 'Spider', 1, 0, ' pts'], ['tetris', '🧱', 'Tetris', 1, 0, ' pts'],
+  ['cobrinha', '🐍', 'Cobrinha', 1, 0, ' pts'], ['2048', '🔳', '2048', 1, 0, ' pts'], ['sudoku_f', '🔢', 'Sudoku fácil', 0, 1, ''],
+  ['sudoku_m', '🔢', 'Sudoku médio', 0, 1, ''], ['sudoku_d', '🔢', 'Sudoku difícil', 0, 1, ''], ['memoria', '🃏', 'Memória', 0, 0, ' jogadas'],
+  ['forca', '🔠', 'Forca', 1, 0, ' seguidas'], ['cruzadas', '🔤', 'Cruzadas', 1, 0, ' resolvidas']];
+const fmtRank = (j, v) => j[4] ? `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}` : v + j[5];
+const recLocal = k => +lsGet('rk_' + k, 0) || 0;
+async function registrar(chave, valor) {
+  valor = Math.round(valor); if (!(valor > 0) || !user) return;
+  const j = RANK_JOGOS.find(x => x[0] === chave); if (!j) return;
+  const ant = recLocal(chave);
+  let melhor = !ant ? valor : j[3] ? Math.max(ant, valor) : Math.min(ant, valor);
+  lsSet('rk_' + chave, String(melhor));
+  try {
+    const em = euMesmo(), ref = doc(col('jogos'), em), s = await getDoc(ref), m = s.exists() ? s.data()[chave] : null;
+    if (m && m.melhor > 0) melhor = j[3] ? Math.max(melhor, m.melhor) : Math.min(melhor, m.melhor);
+    await setDoc(ref, { nome: meuNome(), email: em, [chave]: { ultimo: valor, melhor, quando: Date.now() } }, { merge: true });
+  } catch (e) { /* sem internet: o recorde local vale */ }
+}
+let limparJogo = null;
+function fecharJogo() {
+  if (limparJogo) { try { limparJogo(); } catch (e) {} limparJogo = null; }
+  document.querySelectorAll('.tela-jogo').forEach(x => x.remove()); document.body.style.overflow = ''; render();
+}
+function abrirJogo(titulo, montar) {
+  document.querySelectorAll('.tela-jogo').forEach(x => x.remove());
+  if (limparJogo) { try { limparJogo(); } catch (e) {} limparJogo = null; }
+  const d = document.createElement('div'); d.className = 'tela-jogo';
+  d.innerHTML = `<div class="jg-topo"><button class="btn sec" id="jg_x" style="width:auto;padding:8px 14px">← Voltar</button><b>${titulo}</b><span id="jg_info" class="mut"></span></div><div class="jg-corpo" id="jg_c"></div>`;
+  document.body.appendChild(d); document.body.style.overflow = 'hidden';
+  d.querySelector('#jg_x').onclick = fecharJogo;
+  limparJogo = montar(d.querySelector('#jg_c'), t => { const i = d.querySelector('#jg_info'); if (i) i.textContent = t; }) || (() => {});
+}
+function deslizar(el, fn) {
+  let x0 = 0, y0 = 0;
+  el.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+  el.addEventListener('touchend', e => {
+    const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0; if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+    Math.abs(dx) > Math.abs(dy) ? fn(dx > 0 ? 1 : -1, 0) : fn(0, dy > 0 ? 1 : -1);
+  }, { passive: true });
+}
+const teclas = fn => { const h = e => { if (!e.ctrlKey && !e.metaKey && !e.altKey && fn(e)) e.preventDefault(); }; document.addEventListener('keydown', h); return () => document.removeEventListener('keydown', h); };
+const SETAS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+
+// --- 2048
+function jogo2048(el, info) {
+  let g, pts, fim, ganhou;
+  const COR = { 0: ['#CDC1B4', '#776E65'], 2: ['#EEE4DA', '#776E65'], 4: ['#EDE0C8', '#776E65'], 8: ['#F2B179', '#fff'], 16: ['#F59563', '#fff'], 32: ['#F67C5F', '#fff'], 64: ['#F65E3B', '#fff'], 128: ['#EDCF72', '#fff'], 256: ['#EDCC61', '#fff'], 512: ['#EDC850', '#fff'], 1024: ['#EDC53F', '#fff'], 2048: ['#EDC22E', '#fff'] };
+  const add = () => { const v = g.map((x, i) => x ? -1 : i).filter(i => i >= 0); if (v.length) g[v[Math.floor(Math.random() * v.length)]] = Math.random() < 0.9 ? 2 : 4; };
+  const novo = () => { g = Array(16).fill(0); pts = 0; fim = false; ganhou = false; add(); add(); desenha(); };
+  const linha = l => { const a = l.filter(x => x); let ganho = 0; for (let i = 0; i < a.length - 1; i++) if (a[i] === a[i + 1]) { a[i] *= 2; ganho += a[i]; a.splice(i + 1, 1); } while (a.length < 4) a.push(0); return [a, ganho]; };
+  const pode = () => g.includes(0) || g.some((v, i) => (i % 4 < 3 && v === g[i + 1]) || (i < 12 && v === g[i + 4]));
+  const mover = (dx, dy) => {
+    if (fim) return; let mudou = false, gt = 0; const n = g.slice();
+    for (let k = 0; k < 4; k++) {
+      const idx = [0, 1, 2, 3].map(i => dx ? (dx > 0 ? k * 4 + 3 - i : k * 4 + i) : (dy > 0 ? (3 - i) * 4 + k : i * 4 + k));
+      const [r, gh] = linha(idx.map(i => n[i])); gt += gh; idx.forEach((i, j) => { if (n[i] !== r[j]) mudou = true; n[i] = r[j]; });
+    }
+    if (!mudou) return; g = n; pts += gt; add(); if (g.includes(2048)) ganhou = true;
+    if (!pode()) { fim = true; registrar('2048', pts); }
+    desenha();
+  };
+  const desenha = () => {
+    info(`Pontos ${pts} • Recorde ${Math.max(recLocal('2048'), pts)}`);
+    el.innerHTML = `<div id="b2048" style="width:min(92vw,380px);aspect-ratio:1;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:8px;background:#BBADA0;border-radius:14px;touch-action:none;position:relative">${g.map(v => { const [bg, fg] = COR[v] || ['#3C3A32', '#fff']; return `<div style="background:${bg};color:${fg};border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:${v >= 1024 ? 22 : v >= 128 ? 26 : 32}px">${v || ''}</div>`; }).join('')}${fim ? '<div style="position:absolute;inset:0;background:#fffb;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#333">Fim de jogo!</div>' : ''}</div>
+      ${ganhou && !fim ? '<div>🎉 Você chegou no 2048! Pode continuar.</div>' : ''}
+      <button class="btn" id="n2048" style="max-width:380px">Novo jogo</button><p class="mut">Use as setas do teclado ou deslize o dedo.</p>`;
+    el.querySelector('#n2048').onclick = () => { if (!fim && pts > 0) registrar('2048', pts); novo(); };
+    deslizar(el.querySelector('#b2048'), mover);
+  };
+  const off = teclas(e => { const m = SETAS[e.key]; if (!m) return false; mover(m[0], m[1]); return true; });
+  novo();
+  return () => { off(); if (!fim && pts > 0) registrar('2048', pts); };
+}
+
+// --- Jogo da memória
+function jogoMemoria(el, info) {
+  const E = ['🐶', '🐱', '🦊', '🐼', '🐸', '🦁', '🐵', '🐰'];
+  let cartas, aberta, trava, jog, achados, tm;
+  const novo = () => { clearTimeout(tm); cartas = [...E, ...E].map(e => ({ e, ok: false, v: false })).sort(() => Math.random() - 0.5); aberta = null; trava = false; jog = 0; achados = 0; desenha(); };
+  const virar = i => {
+    const c = cartas[i]; if (trava || c.ok || c.v) return; c.v = true;
+    if (aberta === null) { aberta = i; desenha(); return; }
+    jog++; const o = cartas[aberta];
+    if (o.e === c.e) { o.ok = c.ok = true; aberta = null; achados++; desenha(); if (achados === 8) { registrar('memoria', jog); desenha(); } }
+    else { trava = true; desenha(); const a = aberta; aberta = null; tm = setTimeout(() => { c.v = false; cartas[a].v = false; trava = false; desenha(); }, 800); }
+  };
+  const desenha = () => {
+    const rec = recLocal('memoria'); info(`Jogadas ${jog}${rec ? ' • Melhor ' + rec : ''}`);
+    el.innerHTML = `<div style="width:min(92vw,380px);display:grid;grid-template-columns:repeat(4,1fr);gap:8px">${cartas.map((c, i) => `<button data-i="${i}" style="aspect-ratio:1;border-radius:12px;font-size:34px;background:${c.ok ? '#BBF7D0' : c.v ? 'var(--card)' : 'var(--pri)'};color:var(--onpri);border:var(--borda);box-shadow:var(--sombra)">${c.v || c.ok ? c.e : '❓'}</button>`).join('')}</div>
+      ${achados === 8 ? `<h2>🎉 Parabéns! ${jog} jogadas</h2>` : ''}<button class="btn" id="nm" style="max-width:380px">Novo jogo</button>`;
+    el.querySelectorAll('[data-i]').forEach(b => b.onclick = () => virar(+b.dataset.i)); el.querySelector('#nm').onclick = novo;
+  };
+  novo(); return () => clearTimeout(tm);
+}
+
+// --- Forca
+const PALAVRAS = ['SALARIO', 'FATURA', 'CARTAO', 'BOLETO', 'DINHEIRO', 'ECONOMIA', 'MERCADO', 'ALUGUEL', 'POUPANCA', 'INVESTIR', 'DESCONTO', 'PARCELA', 'JUROS', 'SALDO', 'EXTRATO', 'LIMITE', 'FAMILIA', 'VIAGEM', 'FERIAS', 'ELEFANTE', 'BANANA', 'COMPUTADOR', 'CHOCOLATE', 'BICICLETA', 'JARDIM', 'PRAIA', 'MONTANHA', 'FUTEBOL', 'CELULAR', 'JANELA', 'GUITARRA', 'TARTARUGA', 'ABACAXI', 'MELANCIA', 'BORBOLETA', 'CACHORRO', 'SORVETE', 'PIPOCA', 'FOGUETE', 'BRASIL', 'AMIZADE', 'CAMINHAO', 'ESCOLA', 'PRESENTE', 'TELEFONE', 'VENTILADOR', 'GELADEIRA', 'LARANJA', 'MACACO', 'ARCOIRIS'];
+function jogoForca(el, info) {
+  let pal, ach, err, fim, seq = 0; const MAX = 6;
+  const novo = () => { pal = PALAVRAS[Math.floor(Math.random() * PALAVRAS.length)]; ach = new Set(); err = 0; fim = ''; desenha(); };
+  const tentar = l => {
+    if (fim || ach.has(l)) return; ach.add(l); if (!pal.includes(l)) err++;
+    if ([...pal].every(c => ach.has(c))) { fim = 'ganhou'; seq++; registrar('forca', seq); } else if (err >= MAX) { fim = 'perdeu'; seq = 0; }
+    desenha();
+  };
+  const desenha = () => {
+    info(`Seguidas ${seq} • Recorde ${Math.max(recLocal('forca'), seq)}`);
+    el.innerHTML = `<div style="font-size:26px">${'❤️'.repeat(MAX - err)}${'🖤'.repeat(err)}</div>
+      <div style="font-size:34px;font-weight:800;letter-spacing:6px;text-align:center;margin:8px 0">${[...pal].map(c => ach.has(c) || fim === 'perdeu' ? `<span style="${fim === 'perdeu' && !ach.has(c) ? 'color:var(--mal,#DC2626)' : ''}">${c}</span>` : '_').join(' ')}</div>
+      ${fim === 'ganhou' ? '<h2>🎉 Acertou!</h2>' : fim === 'perdeu' ? '<h2>😢 Não foi dessa vez</h2>' : ''}
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;width:min(92vw,400px)">${[...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map(l => `<button data-l="${l}" ${ach.has(l) || fim ? 'disabled' : ''} style="padding:10px 0;border-radius:10px;font-weight:800;border:var(--borda);background:${ach.has(l) ? (pal.includes(l) ? '#BBF7D0' : '#FECACA') : 'var(--card)'};color:${ach.has(l) ? '#333' : 'var(--tx)'}">${l}</button>`).join('')}</div>
+      ${fim ? '<button class="btn" id="nf" style="max-width:400px">Próxima palavra</button>' : ''}`;
+    el.querySelectorAll('[data-l]').forEach(b => b.onclick = () => tentar(b.dataset.l));
+    const nf = el.querySelector('#nf'); if (nf) nf.onclick = novo;
+  };
+  const off = teclas(e => { const l = (e.key || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase(); if (/^[A-Z]$/.test(l)) { tentar(l); return true; } if (e.key === 'Enter' && fim) { novo(); return true; } return false; });
+  novo(); return off;
+}
+
+// --- Cobrinha
+function jogoCobrinha(el, info) {
+  const N = 20, T = 20; let cobra, dir, prox, comida, pts, estado, tm; // estado: parado | rodando | fim
+  el.innerHTML = `<canvas id="cv" width="${N * T}" height="${N * T}" style="width:min(92vw,400px);aspect-ratio:1;background:var(--card);border-radius:14px;touch-action:none;border:var(--borda)"></canvas>
+    <div id="msg" class="mut" style="min-height:22px;font-weight:700"></div>
+    <div style="display:grid;grid-template-columns:repeat(3,64px);gap:6px;justify-content:center"><span></span><button class="btn sec" data-d="0,-1">▲</button><span></span><button class="btn sec" data-d="-1,0">◀</button><button class="btn sec" data-d="0,1">▼</button><button class="btn sec" data-d="1,0">▶</button></div>
+    <button class="btn" id="nc" style="max-width:400px">Novo jogo</button>`;
+  const cv = el.querySelector('#cv'), cx = cv.getContext('2d'), msg = el.querySelector('#msg');
+  const sorteia = () => { do { comida = [Math.floor(Math.random() * N), Math.floor(Math.random() * N)]; } while (cobra.some(s => s[0] === comida[0] && s[1] === comida[1])); };
+  const novo = () => { clearTimeout(tm); cobra = [[10, 10], [9, 10], [8, 10]]; dir = [1, 0]; prox = [1, 0]; pts = 0; estado = 'parado'; sorteia(); msg.textContent = 'Deslize ou use as setas para começar'; desenha(); };
+  const virar = (dx, dy) => {
+    if (estado === 'fim') return; if (dx === -dir[0] && dy === -dir[1]) return; prox = [dx, dy];
+    if (estado === 'parado') { estado = 'rodando'; msg.textContent = ''; tick(); }
+  };
+  const tick = () => {
+    if (estado !== 'rodando') return; dir = prox;
+    const h = [cobra[0][0] + dir[0], cobra[0][1] + dir[1]];
+    if (h[0] < 0 || h[1] < 0 || h[0] >= N || h[1] >= N || cobra.some(s => s[0] === h[0] && s[1] === h[1])) { estado = 'fim'; msg.textContent = `Fim de jogo! ${pts} pontos`; registrar('cobrinha', pts); desenha(); return; }
+    cobra.unshift(h);
+    if (h[0] === comida[0] && h[1] === comida[1]) { pts += 10; sorteia(); } else cobra.pop();
+    desenha(); tm = setTimeout(tick, Math.max(70, 150 - pts * 0.6));
+  };
+  const desenha = () => {
+    info(`Pontos ${pts} • Recorde ${Math.max(recLocal('cobrinha'), pts)}`);
+    cx.clearRect(0, 0, N * T, N * T);
+    cx.fillStyle = '#DC2626'; cx.beginPath(); cx.arc(comida[0] * T + T / 2, comida[1] * T + T / 2, T / 2 - 2, 0, 7); cx.fill();
+    cobra.forEach((s, i) => { cx.fillStyle = i ? '#16A34A' : '#15803D'; cx.beginPath(); cx.roundRect(s[0] * T + 1, s[1] * T + 1, T - 2, T - 2, 6); cx.fill(); });
+  };
+  el.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { const [x, y] = b.dataset.d.split(',').map(Number); virar(x, y); });
+  el.querySelector('#nc').onclick = () => { if (estado === 'rodando' && pts > 0) registrar('cobrinha', pts); novo(); };
+  deslizar(cv, virar);
+  const off = teclas(e => { const m = SETAS[e.key]; if (!m) return false; virar(m[0], m[1]); return true; });
+  novo();
+  return () => { off(); clearTimeout(tm); if (estado === 'rodando' && pts > 0) registrar('cobrinha', pts); };
+}
+
+// --- Tetris
+function jogoTetris(el, info) {
+  const W = 10, H = 20, S = 24;
+  const F = [[[1, 1, 1, 1]], [[1, 1], [1, 1]], [[0, 1, 0], [1, 1, 1]], [[0, 1, 1], [1, 1, 0]], [[1, 1, 0], [0, 1, 1]], [[1, 0, 0], [1, 1, 1]], [[0, 0, 1], [1, 1, 1]]];
+  const COR = ['', '#22D3EE', '#FACC15', '#A855F7', '#22C55E', '#EF4444', '#3B82F6', '#F97316'];
+  let tab, p, pts, linhas, nivel, fim, tm;
+  el.innerHTML = `<canvas id="cv" width="${W * S}" height="${H * S}" style="height:min(62vh,480px);aspect-ratio:1/2;background:var(--card);border-radius:12px;border:var(--borda);touch-action:none"></canvas>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;width:min(92vw,400px)"><button class="btn sec" data-t="e">◀</button><button class="btn sec" data-t="r">⟳</button><button class="btn sec" data-t="d">▶</button><button class="btn sec" data-t="b">▼</button><button class="btn sec" data-t="q">⤓</button></div>
+    <button class="btn" id="nt" style="max-width:400px">Novo jogo</button><p class="mut">Teclado: setas (← → mover, ↑ girar, ↓ descer) e espaço (cair).</p>`;
+  const cv = el.querySelector('#cv'), cx = cv.getContext('2d');
+  const girar = m => m[0].map((_, i) => m.map(r => r[i]).reverse());
+  const cabe = (m, x, y) => m.every((r, j) => r.every((v, i) => !v || (x + i >= 0 && x + i < W && y + j < H && (y + j < 0 || !tab[y + j][x + i]))));
+  const nova = () => { const k = Math.floor(Math.random() * 7); p = { m: F[k], c: k + 1, x: Math.floor((W - F[k][0].length) / 2), y: 0 }; if (!cabe(p.m, p.x, p.y)) { fim = true; registrar('tetris', pts); } };
+  const fixar = () => {
+    p.m.forEach((r, j) => r.forEach((v, i) => { if (v && p.y + j >= 0) tab[p.y + j][p.x + i] = p.c; }));
+    let n = 0; tab = tab.filter(r => { if (r.every(v => v)) { n++; return false; } return true; }); while (tab.length < H) tab.unshift(Array(W).fill(0));
+    if (n) { pts += [0, 100, 300, 500, 800][n] * nivel; linhas += n; nivel = 1 + Math.floor(linhas / 10); }
+    nova();
+  };
+  const descer = () => { if (fim) return; if (cabe(p.m, p.x, p.y + 1)) p.y++; else fixar(); desenha(); };
+  const mover = dx => { if (!fim && cabe(p.m, p.x + dx, p.y)) { p.x += dx; desenha(); } };
+  const rodar = () => { if (fim) return; const m = girar(p.m); for (const k of [0, -1, 1, -2, 2]) if (cabe(m, p.x + k, p.y)) { p.m = m; p.x += k; break; } desenha(); };
+  const queda = () => { if (fim) return; while (cabe(p.m, p.x, p.y + 1)) p.y++; fixar(); desenha(); };
+  const tick = () => { descer(); if (!fim) tm = setTimeout(tick, Math.max(90, 700 - (nivel - 1) * 60)); };
+  const desenha = () => {
+    info(`Pontos ${pts} • Linhas ${linhas} • Nível ${nivel}`);
+    cx.clearRect(0, 0, W * S, H * S);
+    const q = (x, y, c) => { cx.fillStyle = COR[c]; cx.beginPath(); cx.roundRect(x * S + 1, y * S + 1, S - 2, S - 2, 4); cx.fill(); };
+    tab.forEach((r, y) => r.forEach((v, x) => { if (v) q(x, y, v); }));
+    if (!fim) p.m.forEach((r, j) => r.forEach((v, i) => { if (v) q(p.x + i, p.y + j, p.c); }));
+    if (fim) { cx.fillStyle = '#000a'; cx.fillRect(0, 0, W * S, H * S); cx.fillStyle = '#fff'; cx.font = 'bold 26px system-ui'; cx.textAlign = 'center'; cx.fillText('Fim de jogo!', W * S / 2, H * S / 2); }
+  };
+  const novo = () => { clearTimeout(tm); tab = Array.from({ length: H }, () => Array(W).fill(0)); pts = 0; linhas = 0; nivel = 1; fim = false; nova(); desenha(); tm = setTimeout(tick, 700); };
+  const acao = { e: () => mover(-1), d: () => mover(1), r: rodar, b: descer, q: queda };
+  el.querySelectorAll('[data-t]').forEach(b => b.onclick = acao[b.dataset.t]);
+  el.querySelector('#nt').onclick = () => { if (!fim && pts > 0) registrar('tetris', pts); novo(); };
+  const off = teclas(e => { const k = { ArrowLeft: 'e', ArrowRight: 'd', ArrowUp: 'r', ArrowDown: 'b', ' ': 'q' }[e.key]; if (!k) return false; acao[k](); return true; });
+  novo();
+  return () => { off(); clearTimeout(tm); if (!fim && pts > 0) registrar('tetris', pts); };
+}
+
+// --- Ranking da família
+function jogoRanking(el, info) {
+  let sel = 0, tk = 0; info('');
+  const carrega = async () => {
+    const meu = ++tk, j = RANK_JOGOS[sel];
+    const chips = `<div style="display:flex;gap:6px;overflow-x:auto;width:min(94vw,520px);padding-bottom:6px">${RANK_JOGOS.map((x, i) => `<button data-i="${i}" class="btn ${i === sel ? '' : 'sec'}" style="width:auto;white-space:nowrap;padding:8px 12px;font-size:14px">${x[1]} ${x[2]}</button>`).join('')}</div>`;
+    el.innerHTML = chips + '<p class="mut">Carregando…</p>'; ligar();
+    let linhas = null;
+    try { const s = await getDocs(col('jogos')); linhas = s.docs.map(d => { const x = d.data(), m = x[j[0]]; return m ? { nome: x.nome || cap((x.email || d.id).split('@')[0]), melhor: m.melhor || 0, ultimo: m.ultimo || 0, quando: m.quando || 0 } : null; }).filter(Boolean); } catch (e) { /* sem acesso */ }
+    if (meu !== tk) return;
+    const med = ['🥇', '🥈', '🥉'];
+    const corpo = linhas === null ? '<p style="color:var(--mal,#DC2626)">Não consegui carregar. Confira a internet.</p>'
+      : !linhas.length ? '<p>Ninguém jogou isso ainda. Seja o primeiro!</p>'
+      : linhas.sort((a, b) => j[3] ? b.melhor - a.melhor : a.melhor - b.melhor).map((r, i) => `<div class="card" style="display:flex;align-items:center;gap:12px;margin:0"><div style="font-size:26px">${med[i] || (i + 1) + 'º'}</div><div style="flex:1"><b>${esc(r.nome)}</b><div class="mut">Último: ${fmtRank(j, r.ultimo)} ${r.quando ? new Date(r.quando).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}</div></div><div style="text-align:right;color:var(--pri);font-weight:800">Melhor<br>${fmtRank(j, r.melhor)}</div></div>`).join('');
+    el.innerHTML = chips + `<div style="display:grid;gap:8px;width:min(94vw,520px)">${corpo}</div><p class="mut">Vale para todos os perfis da sua família, no app e no site.</p>`; ligar();
+  };
+  const ligar = () => el.querySelectorAll('[data-i]').forEach(b => b.onclick = () => { sel = +b.dataset.i; carrega(); });
+  carrega(); return () => { tk++; };
+}
+
+const JOGOS_SITE = { ranking: ['🏆 Ranking da família', jogoRanking], '2048': ['🔳 2048', jogo2048], memoria: ['🃏 Jogo da memória', jogoMemoria], forca: ['🔠 Forca', jogoForca], cobrinha: ['🐍 Cobrinha', jogoCobrinha], tetris: ['🧱 Tetris', jogoTetris] };
+function telaJogos() {
+  const rec = k => { const v = recLocal(k), j = RANK_JOGOS.find(x => x[0] === k); return v ? fmtRank(j, v) : '—'; };
+  const it = (em, t, s, k) => `<div class="lin clic-lin menu-it" data-act="jogo" data-k="${k}"><span class="em">${em}</span><div class="t"><b>${t}</b><small>${s}</small></div><span class="mut">›</span></div>`;
+  return `<div class="titulo">🎮 Jogos</div>
+  <div class="card" style="padding:4px 14px">
+    ${it('🏆', 'Ranking da família', 'Compare as pontuações de cada perfil', 'ranking')}
+    ${it('🔳', '2048', 'Recorde: ' + rec('2048'), '2048')}
+    ${it('🃏', 'Jogo da memória', 'Menos jogadas: ' + rec('memoria'), 'memoria')}
+    ${it('🔠', 'Forca', 'Maior sequência: ' + rec('forca'), 'forca')}
+    ${it('🐍', 'Cobrinha', 'Recorde: ' + rec('cobrinha'), 'cobrinha')}
+    ${it('🧱', 'Tetris', 'Recorde: ' + rec('tetris'), 'tetris')}
+  </div>
+  <p class="mut">Sudoku, Palavras cruzadas, Paciência e Spider já estão no app e chegam ao site em breve. As pontuações aparecem no ranking dos dois.</p>`;
+}
+
+const ABAS = [['inicio', '🏠', 'Início'], ['contas', '📅', 'Contas'], ['bancos', '🏦', 'Bancos'], ['cartoes', '💳', 'Cartões'], ['jogos', '🎮', 'Jogos'], ['config', '⚙️', 'Config.']];
 let pronto = false;
 function render() {
-  if (!user || !pronto || document.querySelector('.dlg')) return; // não redesenha por cima de janela aberta
-  const corpo = aba === 'inicio' ? telaInicio() : aba === 'contas' ? telaContas() : aba === 'cartoes' ? telaCartoes() : aba === 'config' ? telaConfig() : telaBancos();
+  if (!user || !pronto || document.querySelector('.dlg, .tela-jogo')) return; // não redesenha por cima de janela aberta
+  const corpo = aba === 'inicio' ? telaInicio() : aba === 'contas' ? telaContas() : aba === 'cartoes' ? telaCartoes() : aba === 'config' ? telaConfig() : aba === 'jogos' ? telaJogos() : telaBancos();
   const y = window.scrollY;
   $app.innerHTML = `<header class="topo"><div class="topo-in">
     <div class="logo">📒 Anota Aí!</div>
@@ -1614,6 +1874,7 @@ $app.addEventListener('click', e => {
     const r = prompt('Meta de sobra do mês (R$). Deixe vazio para sem meta. Vale só neste navegador.', lsGet('meta', '') || '');
     if (r !== null) { const n = pnum(r); lsSet('meta', isNaN(n) ? '0' : String(n)); render(); }
   }
+  else if (a === 'jogo') { const j = JOGOS_SITE[D.k]; if (j) abrirJogo(j[0], j[1]); }
   else if (a === 'video') abrirVideo(D.v);
   else if (a === 'tutorial') abrirTutorial(false);
   else if (a === 'mascote') { lsSet('mascote', D.t); render(); }
