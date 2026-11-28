@@ -436,7 +436,7 @@ function ouvir() {
   mapa('perfis', 'perfis', d => { const x = d.data(); return { email: d.id.toLowerCase(), nome: x.nome || '', saldoInicial: x.saldoInicial || 0, desde: x.desde || 0 }; });
   unsubs.push(onSnapshot(col('acoes'), s => { S.acoes = s.docs.map(d => { const x = d.data(); return { banco: x.banco || '', qtd: x.qtd || 0, preco: x.preco || 0, data: x.data || 0, venda: !!x.venda }; }); render(); }, () => {}));
   unsubs.push(onSnapshot(col('pendentes'), s => { S.pend = s.size; render(); }, () => {}));
-  for (const nome of ['categorias', 'pessoas', 'rendas', 'grupos', 'modelosLanc', 'previstos', 'cobrancasOk']) {
+  for (const nome of ['categorias', 'pessoas', 'rendas', 'grupos', 'modelosLanc', 'previstos', 'cobrancasOk', 'compras']) {
     unsubs.push(onSnapshot(cfgDoc(nome), s => { S.cfg[nome] = (s.data()?.itens || []).map(String); carregou.add('cfg_' + nome); render(); }, () => {}));
   }
 }
@@ -1328,10 +1328,11 @@ const GUIA = [
   "Família e convites",
   [
    "Cada família tem as suas contas, cartões e bancos, separados das outras.",
-   "O código da família fica em Config. > Minha família (10 letras e números).",
+   "O código da família (10 letras e números) fica no app em Config. > Família > Convidar para a família, e no site em Config. > Minha família.",
    "Para convidar: a pessoa cria a conta dela e escolhe Já tenho um código.",
    "Quem entra vê as mesmas contas, cartões e bancos. Cada um tem o seu nome e saldo.",
    "Trocar de família no site: Config. > Minha família > Trocar de família.",
+   "Lista de compras da família: no app em Config. > Família > Lista de compras, e no site em Config. > Lista de compras. Todos veem e editam. Ponha quantidade e preço de cada item para ver o total.",
    "Não passe o código para quem você não quer na família."
   ],
   [
@@ -1515,6 +1516,45 @@ function abrirTutorial(primeira) {
   };
   desenhar();
 }
+// ---------- lista de compras da família (config/compras: "id|nome|qtd|preco|marcado") ----------
+const lerCompras = () => (S.cfg.compras || []).map(x => { const q = x.split('|'); return q.length >= 5 ? { id: q[0], nome: q[1], qtd: parseFloat(q[2]) || 1, preco: parseFloat(q[3]) || 0, ok: q[4] === '1' } : null; }).filter(Boolean);
+const codCompra = c => [c.id, c.nome.replace(/\|/g, '-'), c.qtd, c.preco, c.ok ? 1 : 0].join('|');
+const gravarCompras = l => salvarLista('compras', l.map(codCompra)).catch(er => toast('Não consegui: ' + (er.code || er.message)));
+const subCompra = c => cent(c.qtd * c.preco);
+const qtdTxt = q => Number.isInteger(q) ? String(q) : String(q).replace('.', ',');
+function telaCompras() {
+  const l = lerCompras(), tot = cent(l.reduce((a, c) => a + subCompra(c), 0)), car = cent(l.filter(c => c.ok).reduce((a, c) => a + subCompra(c), 0)), mar = l.filter(c => c.ok).length;
+  const linhas = [...l].sort((a, b) => a.ok - b.ok).map(c => `<div class="lin" style="gap:10px;align-items:center"><input type="checkbox" ${c.ok ? 'checked' : ''} data-act="cpTog" data-id="${esc(c.id)}" style="width:22px;height:22px">
+    <div class="t clic-lin" data-act="cpEd" data-id="${esc(c.id)}" style="flex:1;${c.ok ? 'text-decoration:line-through;opacity:.6' : ''}"><b>${esc(c.nome)}</b><small>${c.preco > 0 ? `${qtdTxt(c.qtd)} × ${money(c.preco)}` : `${qtdTxt(c.qtd)} • toque para pôr o preço`}</small></div>
+    ${c.preco > 0 ? `<b>${money(subCompra(c))}</b>` : ''}<button class="mini" data-act="cpDel" data-id="${esc(c.id)}" title="Tirar da lista">🗑</button></div>`).join('');
+  return `${voltarCfg()}<div class="titulo" style="margin-top:0">🛒 Lista de compras</div>
+  <div class="mut">Lista da família: todos veem e editam. Toque num item para pôr quantidade e preço.</div>
+  <div class="card"><div class="lin"><div class="t"><b>Total da lista</b></div><b style="font-size:20px">${money(tot)}</b></div>
+    <div class="lin"><div class="t">No carrinho (marcados)</div><span>${money(car)}</span></div>
+    <div class="mut">${l.length} itens • ${mar} marcados • faltam ${money(tot - car)}</div></div>
+  <div class="card"><div style="display:flex;gap:8px"><input id="cp_novo" placeholder="Adicionar item (ex.: Arroz)" autocomplete="off" style="flex:1"><button class="btn" data-act="cpAdd" style="width:auto">+ Adicionar</button></div></div>
+  <div class="card" style="padding:4px 14px">${linhas || '<p class="mut">A lista está vazia.</p>'}</div>
+  ${l.length ? `<div class="btns"><button class="btn sec" data-act="cpLimpar" ${mar ? '' : 'disabled'}>Tirar os marcados da lista</button><button class="btn sec" data-act="cpDesm" ${mar ? '' : 'disabled'}>Desmarcar tudo</button></div>` : ''}`;
+}
+function cpAdd() {
+  const e = document.getElementById('cp_novo'), n = e ? e.value.trim() : ''; if (!n) return;
+  e.value = ''; e.blur();
+  gravarCompras([...lerCompras(), { id: (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2)), nome: n, qtd: 1, preco: 0, ok: false }]);
+}
+function cpEditar(id) {
+  const c = lerCompras().find(x => x.id === id); if (!c) return;
+  form({ titulo: 'Editar item', sub: 'Valor do item = quantidade × preço',
+    campos: () => [{ id: 'nome', l: 'Nome', t: 't', val: c.nome }, { id: 'qtd', l: 'Quantidade', t: 'n', val: qtdTxt(c.qtd) }, { id: 'preco', l: 'Preço de cada um (R$)', t: 'n', val: c.preco ? nstr(c.preco) : '' }],
+    salvar: async v => { if (!v.nome) return 'Digite o nome.'; const q = v.qtd > 0 ? v.qtd : 1, pr = v.preco > 0 ? v.preco : 0; await gravarCompras(lerCompras().map(x => x.id === id ? { ...x, nome: v.nome, qtd: q, preco: pr } : x)); } });
+}
+// Ajuda "?" de cada tela: passos do capítulo + vídeos.
+function abrirAjuda() {
+  const i = { inicio: 1, contas: 2, cartoes: 3, bancos: 4, config: 8 }[aba], g = GUIA[i]; if (!g) return;
+  const [e, t, ps, vs] = g;
+  const d = janela(`<h2>${e} Ajuda: ${esc(t)}</h2>${ps.map(x => `<p style="margin:8px 0">${esc(x)}</p>`).join('')}${vs.map(id => botaoVideo(id, 'Ver vídeo: ' + (TITULOS_VIDEO[id] || id))).join('')}<button class="btn" id="aj_fim" style="margin-top:10px">Fechar</button>`);
+  d.querySelector('#aj_fim').onclick = () => { d.remove(); render(); };
+  d.querySelectorAll('[data-act=video]').forEach(b => b.onclick = () => { d.remove(); abrirVideo(b.dataset.v); });
+}
 const voltarCfg = () => `<button class="btn txt" data-act="csub" data-s="" style="padding-left:0">← Configurações</button>`;
 function telaLista(k) {
   const [em, nome, sub] = LISTAS[k], itens = lista(k);
@@ -1526,6 +1566,7 @@ function telaLista(k) {
 function telaConfig() {
   if (LISTAS[cfgSub]) return telaLista(cfgSub);
   if (cfgSub === 'guia') return telaGuia();
+  if (cfgSub === 'compras') return telaCompras();
   if (cfgSub === 'layout') return `${voltarCfg()}<div class="titulo" style="margin-top:0">🎨 Layout</div><div class="mut">Vale só neste navegador.</div><div class="card">${TEMAS.map(([k, n]) => `<div class="lin clic-lin" data-act="tema" data-t="${k}"><div class="t"><b>${n}</b></div><span>${document.documentElement.dataset.tema === k ? '✅' : ''}</span></div>`).join('')}</div>
     <div class="titulo">🐾 Mascote</div><div class="card">${MASCOTES.map(([k, n]) => `<div class="lin clic-lin" data-act="mascote" data-t="${k}"><div class="t"><b>${n}</b></div><span>${tipoMascote() === k ? '✅' : ''}</span></div>`).join('')}</div>`;
   if (cfgSub === 'familia') {
@@ -1541,6 +1582,7 @@ function telaConfig() {
   const it = (em, t, s, act, extra = '') => `<div class="lin clic-lin menu-it" data-act="${act}" ${extra}><span class="em">${em}</span><div class="t"><b>${t}</b><small>${s}</small></div><span class="mut">›</span></div>`;
   return `<div class="titulo">⚙️ Configurações</div>
   <div class="card" style="padding:4px 14px">
+    ${it('🛒', 'Lista de compras', 'Lista da família com quantidade, preço e total', 'csub', 'data-s="compras"')}
     ${it('💰', 'Meu nome e saldo inicial', `${esc(meuNome())} • cada pessoa tem o seu saldo`, 'perfil')}
     ${it('📋', 'Fixas e salários', 'Contas que se repetem todo mês e rendas fixas', 'fixas')}
     ${it('💳', 'Cartões', 'Fechamento, vencimento, limite, titular', 'aba', 'data-aba="cartoes"')}
@@ -1562,7 +1604,7 @@ function telaConfig() {
     ${it('👪', 'Minha família', fid ? 'Código para convidar outras pessoas' : 'Família original', 'csub', 'data-s="familia"')}
     ${it('🚪', 'Sair', esc(user?.email || ''), 'sair')}
   </div>
-  <p class="mut">Só no app do celular: notificações, lembretes, ações, reservas e jogos.</p>`;
+  <p class="mut">Só no app do celular: notificações, lembretes, ações, reservas e os jogos Sudoku, Cruzadas, Paciência e Spider.</p>`;
 }
 let pediuPerfil = false;
 function dlgPerfil(primeira) {
@@ -1823,13 +1865,14 @@ function telaJogos() {
 const ABAS = [['inicio', '🏠', 'Início'], ['contas', '📅', 'Contas'], ['bancos', '🏦', 'Bancos'], ['cartoes', '💳', 'Cartões'], ['jogos', '🎮', 'Jogos'], ['config', '⚙️', 'Config.']];
 let pronto = false;
 function render() {
-  if (!user || !pronto || document.querySelector('.dlg, .tela-jogo')) return; // não redesenha por cima de janela aberta
+  if (!user || !pronto || document.querySelector('.dlg, .tela-jogo')) return;
+  if (document.activeElement && document.activeElement.id === 'cp_novo') return; // não apaga o que está sendo digitado // não redesenha por cima de janela aberta
   const corpo = aba === 'inicio' ? telaInicio() : aba === 'contas' ? telaContas() : aba === 'cartoes' ? telaCartoes() : aba === 'config' ? telaConfig() : aba === 'jogos' ? telaJogos() : telaBancos();
   const y = window.scrollY;
   $app.innerHTML = `<header class="topo"><div class="topo-in">
     <div class="logo">📒 Anota Aí!</div>
     <nav class="abas-topo">${ABAS.map(([k, i, n]) => `<button data-act="aba" data-aba="${k}" class="${aba === k ? 'on' : ''}">${i} ${n}</button>`).join('')}</nav>
-    <div class="acoes"><button class="btn-lancar" data-act="fab">${esc(rotuloLancar())}</button>
+    <div class="acoes">${aba === 'jogos' ? '' : '<button class="mini" data-act="ajuda" title="Ajuda desta tela" aria-label="Ajuda desta tela">❓</button>'}<button class="btn-lancar" data-act="fab">${esc(rotuloLancar())}</button>
       <select class="mini" id="tema" title="Layout">${TEMAS.map(([k, n]) => `<option value="${k}" ${document.documentElement.dataset.tema === k ? 'selected' : ''}>${n}</option>`).join('')}</select>
       <span class="usr">${esc(meuNome())}</span><button class="mini" data-act="sair">Sair</button></div></div></header>
     <main class="pag ${aba === 'inicio' || (aba === 'cartoes' && cartaoSel) || (aba === 'bancos' && bancoSel) ? '' : 'estreita'}">${corpo}</main>
@@ -1837,8 +1880,11 @@ function render() {
     <nav class="baixo">${ABAS.map(([k, i, n]) => `<button data-act="aba" data-aba="${k}" class="${aba === k ? 'on' : ''}"><span>${i}</span>${n}</button>`).join('')}</nav>`;
   window.scrollTo(0, y);
 }
+$app.addEventListener('focusout', e => { if (e.target.id === 'cp_novo') setTimeout(render, 150); });
+$app.addEventListener('keydown', e => { if (e.target.id === 'cp_novo' && e.key === 'Enter') cpAdd(); });
 $app.addEventListener('click', e => {
   const b = e.target.closest('[data-recebi]'); if (b) { receberFixa(b.dataset.recebi); return; }
+  const ck = e.target.closest('input[data-act=cpTog]'); if (ck) { gravarCompras(lerCompras().map(c => c.id === ck.dataset.id ? { ...c, ok: ck.checked } : c)); return; }
   const t = e.target.closest('[data-act]'); if (!t || e.target.closest('input')) return;
   const a = t.dataset.act, D = t.dataset;
   const cartao = () => S.cartoes.find(x => x.id === cartaoSel), banco = () => S.bancos.find(x => x.id === bancoSel);
@@ -1874,6 +1920,13 @@ $app.addEventListener('click', e => {
     const r = prompt('Meta de sobra do mês (R$). Deixe vazio para sem meta. Vale só neste navegador.', lsGet('meta', '') || '');
     if (r !== null) { const n = pnum(r); lsSet('meta', isNaN(n) ? '0' : String(n)); render(); }
   }
+  else if (a === 'ajuda') abrirAjuda();
+  else if (a === 'cpAdd') cpAdd();
+  else if (a === 'cpTog') gravarCompras(lerCompras().map(c => c.id === D.id ? { ...c, ok: !c.ok } : c));
+  else if (a === 'cpEd') cpEditar(D.id);
+  else if (a === 'cpDel') { const c = lerCompras().find(x => x.id === D.id); if (c && confirm(`Tirar "${c.nome}" da lista?`)) gravarCompras(lerCompras().filter(x => x.id !== D.id)); }
+  else if (a === 'cpLimpar') gravarCompras(lerCompras().filter(c => !c.ok));
+  else if (a === 'cpDesm') gravarCompras(lerCompras().map(c => ({ ...c, ok: false })));
   else if (a === 'jogo') { const j = JOGOS_SITE[D.k]; if (j) abrirJogo(j[0], j[1]); }
   else if (a === 'video') abrirVideo(D.v);
   else if (a === 'tutorial') abrirTutorial(false);
