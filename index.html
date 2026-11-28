@@ -16,7 +16,7 @@
 [data-tema=escuro]{--bg:#000;--card:#161616;--tx:#F2F2F2;--tx2:#A8A8A8;--lin:#2E2E2E;--sv:#242424;--pri:#C8F169;--onpri:#101800;--topo:#000;--topotx:#F2F2F2;--dest:#C8F169;--raio:20px;--borda:1px solid #2E2E2E;--ok:#4ADE80;--mal:#FF8A80;--amb:#FBBF24;--aviso-ok:#14301F;--aviso-okt:#86EFAC;--aviso-mal:#3B1414;--aviso-malt:#FCA5A5;--aviso-amb:#3A2A0A;--aviso-ambt:#FCD34D}
 [data-tema=suave]{--bg:#E4EEF1;--card:#F6FAFB;--tx:#1F3A40;--tx2:#4E6A70;--lin:#C9DBE0;--sv:#D9E6EA;--pri:#0E9AA7;--topo:#E4EEF1;--topotx:#1F3A40;--dest:#0E9AA7;--raio:26px;--borda:none;--sombra:0 3px 10px #0001}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;overflow-x:hidden}
+html,body{margin:0;overflow-x:hidden;overflow-x:clip}
 body{background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Color Emoji",sans-serif;min-height:100vh}
 button{font:inherit;cursor:pointer}
 /* ===== topo (site) ===== */
@@ -436,7 +436,7 @@ function ouvir() {
   mapa('perfis', 'perfis', d => { const x = d.data(); return { email: d.id.toLowerCase(), nome: x.nome || '', saldoInicial: x.saldoInicial || 0, desde: x.desde || 0 }; });
   unsubs.push(onSnapshot(col('acoes'), s => { S.acoes = s.docs.map(d => { const x = d.data(); return { banco: x.banco || '', qtd: x.qtd || 0, preco: x.preco || 0, data: x.data || 0, venda: !!x.venda }; }); render(); }, () => {}));
   unsubs.push(onSnapshot(col('pendentes'), s => { S.pend = s.size; render(); }, () => {}));
-  for (const nome of ['categorias', 'pessoas', 'rendas', 'grupos', 'modelosLanc', 'previstos', 'cobrancasOk', 'compras']) {
+  for (const nome of ['categorias', 'pessoas', 'rendas', 'grupos', 'modelosLanc', 'previstos', 'cobrancasOk', 'compras', 'hist_precos']) {
     unsubs.push(onSnapshot(cfgDoc(nome), s => { S.cfg[nome] = (s.data()?.itens || []).map(String); carregou.add('cfg_' + nome); render(); }, () => {}));
   }
 }
@@ -1519,6 +1519,31 @@ function abrirTutorial(primeira) {
 }
 // ---------- lista de compras da família (config/compras: "id|nome|qtd|preco|marcado") ----------
 const lerCompras = () => (S.cfg.compras || []).map(x => { const q = x.split('|'); return q.length >= 5 ? { id: q[0], nome: q[1], qtd: parseFloat(q[2]) || 1, preco: parseFloat(q[3]) || 0, ok: q[4] === '1' } : null; }).filter(Boolean);
+const lerHist = () => (S.cfg.hist_precos || []).map(x => { const q = x.split('|'); if (q.length < 3) return null; const compras = q[2].split(';').map(t => t.split(':')).filter(t => t.length === 2 && !isNaN(+t[0]) && !isNaN(+t[1])).map(t => [+t[0], +t[1]]); return { chave: q[0], nome: q[1], compras, ultimo: compras.length ? compras[compras.length - 1][1] : 0, media: compras.length ? cent(compras.slice(-5).reduce((a, c) => a + c[1], 0) / Math.min(5, compras.length)) : 0 }; }).filter(Boolean);
+const codHist = h => [h.chave, h.nome.replace(/\|/g, '-'), h.compras.map(c => c[0] + ':' + c[1]).join(';')].join('|');
+// devolve o histórico (lista de objetos) com o nome e, se preco > 0, o preço registrados
+function regHist(hist, nome, preco) {
+  const k = normCp(nome); if (!k) return hist; const dia = Math.floor(Date.now() / 86400000);
+  const at = hist.find(h => h.chave === k); let compras = at ? [...at.compras] : [];
+  const ult = compras[compras.length - 1];
+  if (preco > 0 && !(ult && ult[0] === dia && ult[1] === preco)) compras = [...compras, [dia, preco]].slice(-10);
+  const novo = { chave: k, nome: at ? at.nome : nome.trim(), compras };
+  return at ? hist.map(h => h.chave === k ? novo : h) : [...hist, novo];
+}
+const gravarHist = h => salvarLista('hist_precos', h.map(codHist)).catch(() => {});
+function cpSugestoes() {
+  const e = document.getElementById('cp_novo'), box = document.getElementById('cp_sug'); if (!e || !box) return;
+  const k = normCp(e.value), l = lerCompras(); if (k.length < 2) { box.innerHTML = ''; return; }
+  box.innerHTML = lerHist().filter(h => h.chave.includes(k)).sort((a, b) => (b.chave.startsWith(k)) - (a.chave.startsWith(k))).slice(0, 5).map(h => {
+    const ja = l.some(c => normCp(c.nome) === h.chave);
+    return `<div class="lin" ${ja ? 'style="opacity:.6"' : `data-act="cpSug" data-k="${esc(h.chave)}" style="cursor:pointer"`}><div class="t"><b>${esc(h.nome)}${ja ? ' (já na lista)' : ''}</b><small>${h.ultimo ? `💰 último ${money(h.ultimo)} • 📊 média ${money(h.media)} (${Math.min(5, h.compras.length)} compras)` : 'ainda sem preço guardado'}</small></div></div>`;
+  }).join('');
+}
+function cpSug(k) {
+  const h = lerHist().find(x => x.chave === k); if (!h) return; const l = lerCompras(); if (l.some(c => normCp(c.nome) === k)) return;
+  const e = document.getElementById('cp_novo'); if (e) { e.value = ''; e.blur(); }
+  gravarCompras([...l, { id: (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2)), nome: h.nome, qtd: 1, preco: h.ultimo || 0, ok: false }]);
+}
 const codCompra = c => [c.id, c.nome.replace(/\|/g, '-'), c.qtd, c.preco, c.ok ? 1 : 0].join('|');
 const gravarCompras = l => salvarLista('compras', l.map(codCompra)).catch(er => toast('Não consegui: ' + (er.code || er.message)));
 const subCompra = c => cent(c.qtd * c.preco);
@@ -1530,17 +1555,20 @@ function telaCompras() {
     ${c.preco > 0 ? `<b>${money(subCompra(c))}</b>` : ''}<button class="mini" data-act="cpDel" data-id="${esc(c.id)}" title="Tirar da lista">🗑</button></div>`).join('');
   return `${voltarCfg()}<div class="titulo" style="margin-top:0">🛒 Lista de compras</div>
   <div class="mut">Lista da família: todos veem e editam. Toque num item para pôr quantidade e preço.</div>
-  <div class="card"><div class="lin"><div class="t"><b>Total da lista</b></div><b style="font-size:20px">${money(tot)}</b></div>
+  <div class="card" style="position:sticky;top:${(document.querySelector('.topo') || {}).offsetHeight || 56}px;z-index:5"><div class="lin"><div class="t"><b>Total da lista</b></div><b style="font-size:20px">${money(tot)}</b></div>
     <div class="lin"><div class="t">No carrinho (marcados)</div><span>${money(car)}</span></div>
     <div class="mut">${l.length} itens • ${mar} marcados • faltam ${money(tot - car)}</div></div>
-  <div class="card"><div style="display:flex;gap:8px"><input id="cp_novo" placeholder="Adicionar item (ex.: Arroz)" autocomplete="off" style="flex:1"><button class="btn" data-act="cpAdd" style="width:auto">+ Adicionar</button></div><button class="btn sec" data-act="cpColar" style="margin-top:8px">📋 Colar lista</button></div>
+  <div class="card"><div style="display:flex;gap:8px"><input id="cp_novo" placeholder="Adicionar item (ex.: Arroz)" autocomplete="off" style="flex:1"><button class="btn" data-act="cpAdd" style="width:auto">+ Adicionar</button></div><div id="cp_sug"></div><button class="btn sec" data-act="cpColar" style="margin-top:8px">📋 Colar lista</button></div>
   <div class="card" style="padding:4px 14px">${linhas || '<p class="mut">A lista está vazia.</p>'}</div>
   ${l.length ? `<div class="btns"><button class="btn sec" data-act="cpLimpar" ${mar ? '' : 'disabled'}>Tirar os marcados da lista</button><button class="btn sec" data-act="cpDesm" ${mar ? '' : 'disabled'}>Desmarcar tudo</button></div>` : ''}`;
 }
 function cpAdd() {
   const e = document.getElementById('cp_novo'), n = e ? e.value.trim() : ''; if (!n) return;
   e.value = ''; e.blur();
-  gravarCompras([...lerCompras(), { id: (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2)), nome: n, qtd: 1, preco: 0, ok: false }]);
+  const l = lerCompras(), k = normCp(n); if (l.some(c => normCp(c.nome) === k)) { toast('Esse item já está na lista'); render(); return; }
+  const h = lerHist().find(x => x.chave === k);
+  gravarCompras([...l, { id: (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2)), nome: h ? h.nome : n, qtd: 1, preco: h ? h.ultimo : 0, ok: false }]);
+  gravarHist(regHist(lerHist(), n, 0));
 }
 const normCp = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 function cpColar() {
@@ -1554,15 +1582,16 @@ function cpColar() {
       novos.push({ id: (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2)), nome: n[0].toUpperCase() + n.slice(1), qtd: 1, preco: 0, ok: false });
     }
     d.remove();
-    if (novos.length) await gravarCompras([...atual, ...novos]);
+    if (novos.length) { await gravarCompras([...atual, ...novos]); let h2 = lerHist(); for (const n of novos) h2 = regHist(h2, n.nome, 0); gravarHist(h2); }
     toast(`${novos.length} adicionados • ${ja} já estavam`); render();
   };
 }
 function cpEditar(id) {
   const c = lerCompras().find(x => x.id === id); if (!c) return;
-  form({ titulo: 'Editar item', sub: 'Valor do item = quantidade × preço',
+  const hh = lerHist().find(x => x.chave === normCp(c.nome));
+  form({ titulo: 'Editar item', sub: 'Valor do item = quantidade × preço' + (hh && hh.ultimo ? ` • 💰 último pago ${money(hh.ultimo)} • 📊 média ${money(hh.media)}` : ''),
     campos: () => [{ id: 'nome', l: 'Nome', t: 't', val: c.nome }, { id: 'qtd', l: 'Quantidade', t: 'n', val: qtdTxt(c.qtd) }, { id: 'preco', l: 'Preço de cada um (R$)', t: 'n', val: c.preco ? nstr(c.preco) : '' }],
-    salvar: async v => { if (!v.nome) return 'Digite o nome.'; const q = v.qtd > 0 ? v.qtd : 1, pr = v.preco > 0 ? v.preco : 0; await gravarCompras(lerCompras().map(x => x.id === id ? { ...x, nome: v.nome, qtd: q, preco: pr } : x)); } });
+    salvar: async v => { if (!v.nome) return 'Digite o nome.'; const q = v.qtd > 0 ? v.qtd : 1, pr = v.preco > 0 ? v.preco : 0; await gravarCompras(lerCompras().map(x => x.id === id ? { ...x, nome: v.nome, qtd: q, preco: pr } : x)); gravarHist(regHist(lerHist(), v.nome, c.ok ? pr : 0)); } });
 }
 // Ajuda "?" de cada tela: passos do capítulo + vídeos.
 function abrirAjuda() {
@@ -1898,10 +1927,11 @@ function render() {
   window.scrollTo(0, y);
 }
 $app.addEventListener('focusout', e => { if (e.target.id === 'cp_novo') setTimeout(render, 150); });
+$app.addEventListener('input', e => { if (e.target.id === 'cp_novo') cpSugestoes(); });
 $app.addEventListener('keydown', e => { if (e.target.id === 'cp_novo' && e.key === 'Enter') cpAdd(); });
 $app.addEventListener('click', e => {
   const b = e.target.closest('[data-recebi]'); if (b) { receberFixa(b.dataset.recebi); return; }
-  const ck = e.target.closest('input[data-act=cpTog]'); if (ck) { gravarCompras(lerCompras().map(c => c.id === ck.dataset.id ? { ...c, ok: ck.checked } : c)); return; }
+  const ck = e.target.closest('input[data-act=cpTog]'); if (ck) { const c0 = lerCompras().find(c => c.id === ck.dataset.id); gravarCompras(lerCompras().map(c => c.id === ck.dataset.id ? { ...c, ok: ck.checked } : c)); if (c0 && ck.checked) gravarHist(regHist(lerHist(), c0.nome, c0.preco)); return; }
   const t = e.target.closest('[data-act]'); if (!t || e.target.closest('input')) return;
   const a = t.dataset.act, D = t.dataset;
   const cartao = () => S.cartoes.find(x => x.id === cartaoSel), banco = () => S.bancos.find(x => x.id === bancoSel);
@@ -1941,7 +1971,8 @@ $app.addEventListener('click', e => {
   else if (a === 'irCompras') { aba = 'config'; cfgSub = 'compras'; render(); window.scrollTo(0, 0); }
   else if (a === 'cpAdd') cpAdd();
   else if (a === 'cpColar') cpColar();
-  else if (a === 'cpTog') gravarCompras(lerCompras().map(c => c.id === D.id ? { ...c, ok: !c.ok } : c));
+  else if (a === 'cpTog') { const c0 = lerCompras().find(c => c.id === D.id); gravarCompras(lerCompras().map(c => c.id === D.id ? { ...c, ok: !c.ok } : c)); if (c0 && !c0.ok) gravarHist(regHist(lerHist(), c0.nome, c0.preco)); }
+  else if (a === 'cpSug') cpSug(D.k);
   else if (a === 'cpEd') cpEditar(D.id);
   else if (a === 'cpDel') { const c = lerCompras().find(x => x.id === D.id); if (c && confirm(`Tirar "${c.nome}" da lista?`)) gravarCompras(lerCompras().filter(x => x.id !== D.id)); }
   else if (a === 'cpLimpar') gravarCompras(lerCompras().filter(c => !c.ok));
