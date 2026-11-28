@@ -1533,7 +1533,7 @@ function telaCompras() {
   <div class="card"><div class="lin"><div class="t"><b>Total da lista</b></div><b style="font-size:20px">${money(tot)}</b></div>
     <div class="lin"><div class="t">No carrinho (marcados)</div><span>${money(car)}</span></div>
     <div class="mut">${l.length} itens • ${mar} marcados • faltam ${money(tot - car)}</div></div>
-  <div class="card"><div style="display:flex;gap:8px"><input id="cp_novo" placeholder="Adicionar item (ex.: Arroz)" autocomplete="off" style="flex:1"><button class="btn" data-act="cpAdd" style="width:auto">+ Adicionar</button></div></div>
+  <div class="card"><div style="display:flex;gap:8px"><input id="cp_novo" placeholder="Adicionar item (ex.: Arroz)" autocomplete="off" style="flex:1"><button class="btn" data-act="cpAdd" style="width:auto">+ Adicionar</button></div><button class="btn sec" data-act="cpColar" style="margin-top:8px">📋 Colar lista</button></div>
   <div class="card" style="padding:4px 14px">${linhas || '<p class="mut">A lista está vazia.</p>'}</div>
   ${l.length ? `<div class="btns"><button class="btn sec" data-act="cpLimpar" ${mar ? '' : 'disabled'}>Tirar os marcados da lista</button><button class="btn sec" data-act="cpDesm" ${mar ? '' : 'disabled'}>Desmarcar tudo</button></div>` : ''}`;
 }
@@ -1541,6 +1541,22 @@ function cpAdd() {
   const e = document.getElementById('cp_novo'), n = e ? e.value.trim() : ''; if (!n) return;
   e.value = ''; e.blur();
   gravarCompras([...lerCompras(), { id: (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2)), nome: n, qtd: 1, preco: 0, ok: false }]);
+}
+const normCp = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+function cpColar() {
+  const d = janela(`<h2>📋 Colar lista</h2><div class="mut" style="margin:-6px 0 8px">Um item por linha. Itens que já estão na lista não entram de novo.</div><textarea id="cp_txt" rows="8" style="width:100%" placeholder="Arroz&#10;Feijão&#10;Leite"></textarea><div class="btns"><button class="btn" id="cp_ok">Adicionar</button><button class="btn txt" id="cp_x">Cancelar</button></div>`);
+  d.querySelector('#cp_x').onclick = () => { d.remove(); render(); };
+  d.querySelector('#cp_ok').onclick = async () => {
+    const atual = lerCompras(), vistos = new Set(atual.map(c => normCp(c.nome))), novos = []; let ja = 0;
+    for (const bruto of d.querySelector('#cp_txt').value.split('\n')) {
+      const n = bruto.trim().replace(/^[-*•\u2022\s]+/, '').replace(/^\d+[.)]\s+/, '').trim(); if (n.length < 1) continue;
+      const k = normCp(n); if (vistos.has(k)) { ja++; continue; } vistos.add(k);
+      novos.push({ id: (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2)), nome: n[0].toUpperCase() + n.slice(1), qtd: 1, preco: 0, ok: false });
+    }
+    d.remove();
+    if (novos.length) await gravarCompras([...atual, ...novos]);
+    toast(`${novos.length} adicionados • ${ja} já estavam`); render();
+  };
 }
 function cpEditar(id) {
   const c = lerCompras().find(x => x.id === id); if (!c) return;
@@ -1924,6 +1940,7 @@ $app.addEventListener('click', e => {
   else if (a === 'ajuda') abrirAjuda();
   else if (a === 'irCompras') { aba = 'config'; cfgSub = 'compras'; render(); window.scrollTo(0, 0); }
   else if (a === 'cpAdd') cpAdd();
+  else if (a === 'cpColar') cpColar();
   else if (a === 'cpTog') gravarCompras(lerCompras().map(c => c.id === D.id ? { ...c, ok: !c.ok } : c));
   else if (a === 'cpEd') cpEditar(D.id);
   else if (a === 'cpDel') { const c = lerCompras().find(x => x.id === D.id); if (c && confirm(`Tirar "${c.nome}" da lista?`)) gravarCompras(lerCompras().filter(x => x.id !== D.id)); }
