@@ -638,6 +638,7 @@ function telaInicio() {
   const colA = `
   ${S.pend ? `<div class="card" style="padding:12px 16px"><b>🔔 ${S.pend} notificação(ões) esperando você</b><div class="mut">Classifique pelo app no celular.</div></div>`
     : `<div class="mut" style="margin:0 0 10px 4px">🔔 Notificações: tudo em dia</div>`}
+  ${(() => { const l = lerCompras(); return `<div class="card clic-lin" data-act="irCompras" style="padding:12px 16px;cursor:pointer"><b>🛒 Lista de compras</b><div class="mut">${l.length ? `${l.length} itens • total ${money(l.reduce((t, c) => t + subCompra(c), 0))} • ${l.filter(c => !c.ok).length} faltam pegar` : 'Vazia. Toque para montar a lista da família'}</div></div>`; })()}
   <div class="masc">${tipoMascote() === 'nenhum' ? '' : `<div class="rosto" data-act="humor" data-humor="${humor}" data-tipo="${tipoMascote()}" title="Toque para mudar a frase">${mascoteSVG(tipoMascote(), humor)}</div>`}
     <div class="balao"><b>${esc(fraseAtual)}</b>${motivo && humor !== 'dormindo' ? `<span class="mut">${esc(motivo)}</span>` : ''}</div></div>
   ${atual ? grupos.map(g => { const sb = cent(-g.resta), nv = nivel(sb); if (!nv) return '';
@@ -1332,7 +1333,7 @@ const GUIA = [
    "Para convidar: a pessoa cria a conta dela e escolhe Já tenho um código.",
    "Quem entra vê as mesmas contas, cartões e bancos. Cada um tem o seu nome e saldo.",
    "Trocar de família no site: Config. > Minha família > Trocar de família.",
-   "Lista de compras da família: no app em Config. > Família > Lista de compras, e no site em Config. > Lista de compras. Todos veem e editam. Ponha quantidade e preço de cada item para ver o total.",
+   "Lista de compras da família: toque no cartão 🛒 na tela Início (ou, no app, Config. > Família; no site, Config.). Todos veem e editam. Ponha quantidade e preço de cada item para ver o total.",
    "Não passe o código para quem você não quer na família."
   ],
   [
@@ -1921,6 +1922,7 @@ $app.addEventListener('click', e => {
     if (r !== null) { const n = pnum(r); lsSet('meta', isNaN(n) ? '0' : String(n)); render(); }
   }
   else if (a === 'ajuda') abrirAjuda();
+  else if (a === 'irCompras') { aba = 'config'; cfgSub = 'compras'; render(); window.scrollTo(0, 0); }
   else if (a === 'cpAdd') cpAdd();
   else if (a === 'cpTog') gravarCompras(lerCompras().map(c => c.id === D.id ? { ...c, ok: !c.ok } : c));
   else if (a === 'cpEd') cpEditar(D.id);
